@@ -13,7 +13,7 @@ const App: React.FC = () => {
   return (
     <>
       <GlobalStyle />
-      <div className="space"></div> 
+      <div className="space"></div>
       <Provider store={store}>
         <Router>
           <Routes>

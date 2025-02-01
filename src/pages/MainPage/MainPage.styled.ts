@@ -114,6 +114,8 @@ export const ProfileContainer = styled.div`
   color: #666;
 `;
 
+
+
 export const ProfileDetails = styled.div`
   text-align: center;
   h2 {
@@ -214,4 +216,13 @@ align-items: center;
 height: 200px;
 font-size: 1.5rem;
 `;
+
+
+
+export const StarIcon = styled.span`
+  font-size: 24px;
+  cursor: pointer;
+`;
+
+
 

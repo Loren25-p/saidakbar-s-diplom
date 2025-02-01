@@ -1,3 +1,4 @@
+// MainPage.tsx
 import React, { useState, useEffect } from 'react';
 import { useSelector } from 'react-redux';
 import { RootState } from '../../store';
@@ -14,15 +15,8 @@ import {
   SearchButton,
   ProfileContainer,
   ProfileDetails,
-  ModalOverlay,
-  ModalContent,
-  ModalHeader,
-  ModalBody,
-  ModalFooter,
-  CloseButton,
-  SubmitButton,
-  InputField,
-} from './MainPage.styled';
+  StarIcon
+} from './MainPage.styled'; 
 import axios from 'axios';
 
 interface Freelancer {
@@ -35,25 +29,16 @@ interface Freelancer {
 }
 
 const professions = [
-  'Web Developer',
-  'Graphic Designer',
-  'Content Writer',
-  'SEO Specialist',
-  'Digital Marketer',
-  'Mobile App Developer',
-  'UX/UI Designer',
-  'Data Analyst',
-  'Project Manager',
-  'Photographer',
+  'Web Developer', 'Graphic Designer', 'Content Writer', 'SEO Specialist',
+  'Digital Marketer', 'Mobile App Developer', 'UX/UI Designer',
+  'Data Analyst', 'Project Manager', 'Photographer'
 ];
 
 const MainPage: React.FC = () => {
-  const isAuthenticated = useSelector((state: RootState) => state.user.isAuthenticated);
+  const isAuthenticated = useSelector((state: RootState) => state.user?.isAuthenticated ?? false); 
   const navigate = useNavigate();
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedFreelancer, setSelectedFreelancer] = useState<Freelancer | null>(null);
-  const [isModalOpen, setIsModalOpen] = useState(false);
-  const [newPost, setNewPost] = useState({ name: '', city: '', description: '', specialty: '' });
   const [shouldShowFreelancers, setShouldShowFreelancers] = useState(false);
   const [freelancers, setFreelancers] = useState<Freelancer[]>([]);
   const [localFreelancers, setLocalFreelancers] = useState<Freelancer[]>([]);
@@ -65,13 +50,12 @@ const MainPage: React.FC = () => {
   }, [isAuthenticated, navigate]);
 
   useEffect(() => {
-    // Fetch freelancers from GitHub API
     const fetchFreelancers = async () => {
       try {
         const response = await axios.get('https://api.github.com/users?per_page=50');
         const data = response.data.map((user: any, index: number) => ({
           ...user,
-          specialty: professions[index % professions.length], 
+          specialty: professions[index % professions.length],
           description: 'Опытный специалист в своей области с отличным портфолио и отзывами.',
         }));
         setFreelancers(data);
@@ -85,7 +69,6 @@ const MainPage: React.FC = () => {
     }
   }, [shouldShowFreelancers]);
 
-  
   useEffect(() => {
     const savedFreelancers = localStorage.getItem('localFreelancers');
     if (savedFreelancers) {
@@ -93,13 +76,14 @@ const MainPage: React.FC = () => {
     }
   }, []);
 
-  
   useEffect(() => {
     localStorage.setItem('localFreelancers', JSON.stringify(localFreelancers));
   }, [localFreelancers]);
 
-  const filteredFreelancers = [...freelancers, ...localFreelancers].filter((freelancer) =>
-    freelancer.login?.toLowerCase().includes(searchTerm.toLowerCase())
+  // Фильтрация фрилансеров на главной странице
+  const filteredFreelancers = freelancers.filter((freelancer) =>
+    freelancer.specialty?.toLowerCase().includes(searchTerm.toLowerCase()) &&
+    !localFreelancers.some((favorite) => favorite.id === freelancer.id)
   );
 
   const handleSearchChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -120,32 +104,23 @@ const MainPage: React.FC = () => {
     setSelectedFreelancer(freelancer);
   };
 
-  const handleOpenModal = () => {
-    setIsModalOpen(true);
+  const handleGoToFavorites = () => {
+    navigate('/favorites');
   };
 
-  const handleCloseModal = () => {
-    setIsModalOpen(false);
-  };
+  const handleAddToFavorites = (freelancer: Freelancer) => {
+    // Проверяем, добавлен ли уже фрилансер в избранное
+    const isAlreadyFavorite = localFreelancers.some((favorite) => favorite.id === freelancer.id);
 
-  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const { name, value } = e.target;
-    setNewPost((prev) => ({ ...prev, [name]: value }));
-  };
-
-  const handleSubmitPost = () => {
-    const newFreelancer = {
-      id: localFreelancers.length + freelancers.length + 1,
-      login: newPost.name,
-      avatar_url: `https://picsum.photos/seed/${localFreelancers.length + 1}/200/200`,
-      html_url: '#',
-      specialty: newPost.specialty,
-      description: newPost.description,
-    };
-    setLocalFreelancers((prev) => [...prev, newFreelancer]);
-    alert('Новый пост успешно добавлен');
-    setIsModalOpen(false);
-    setNewPost({ name: '', city: '', description: '', specialty: '' });
+    if (!isAlreadyFavorite) {
+      // Если не добавлен, добавляем в избранное
+      const updatedFavorites = [...localFreelancers, freelancer];
+      setLocalFreelancers(updatedFavorites);
+    } else {
+      // Если добавлен, удаляем из избранного
+      const updatedFavorites = localFreelancers.filter((favorite) => favorite.id !== freelancer.id);
+      setLocalFreelancers(updatedFavorites);
+    }
   };
 
   return (
@@ -156,7 +131,7 @@ const MainPage: React.FC = () => {
         <SearchContainer>
           <SearchInput
             type="text"
-            placeholder="Поиск фрилансеров..."
+            placeholder="Поиск по профессии..."
             value={searchTerm}
             onChange={handleSearchChange}
             onKeyDown={handleKeyDown}
@@ -165,8 +140,9 @@ const MainPage: React.FC = () => {
             <SearchIcon />
           </SearchButton>
         </SearchContainer>
-        <CardButton onClick={handleOpenModal}>Добавить новый пост</CardButton>
+        <CardButton onClick={handleGoToFavorites}>Перейти в избранное</CardButton>
       </HeroSection>
+
       {selectedFreelancer ? (
         <ProfileContainer>
           <ProfileDetails>
@@ -187,6 +163,13 @@ const MainPage: React.FC = () => {
                   <img src={freelancer.avatar_url} alt="avatar" style={{ width: '150px', height: '150px', borderRadius: '50%' }} />
                   <h2>{freelancer.login}</h2>
                   <p>Специальность: {freelancer.specialty}</p>
+                  {/* Используем символ галочки вместо CheckIcon */}
+                  <StarIcon 
+                    onClick={() => handleAddToFavorites(freelancer)} 
+                    style={{ cursor: 'pointer' }}
+                  >
+                    {localFreelancers.some(f => f.id === freelancer.id) ? '✔️' : '⭐'}
+                  </StarIcon>
                   <CardButton onClick={() => handleViewProfile(freelancer)}>Просмотреть профиль</CardButton>
                 </FreelancerCard>
               ))
@@ -195,25 +178,6 @@ const MainPage: React.FC = () => {
             )}
           </CardGrid>
         )
-      )}
-      {isModalOpen && (
-        <ModalOverlay>
-          <ModalContent>
-            <ModalHeader>
-              <h2>Добавить новый пост</h2>
-              <CloseButton onClick={handleCloseModal}>x</CloseButton>
-            </ModalHeader>
-            <ModalBody>
-              <InputField type="text" name="name" placeholder="Имя" value={newPost.name} onChange={handleInputChange} />
-              <InputField type="text" name="city" placeholder="Город" value={newPost.city} onChange={handleInputChange} />
-              <InputField type="text" name="specialty" placeholder="Специальность" value={newPost.specialty} onChange={handleInputChange} />
-              <InputField type="text" name="description" placeholder="Описание" value={newPost.description} onChange={handleInputChange} />
-            </ModalBody>
-            <ModalFooter>
-              <SubmitButton onClick={handleSubmitPost}>Добавить</SubmitButton>
-            </ModalFooter>
-          </ModalContent>
-        </ModalOverlay>
       )}
     </MainContainer>
   );
